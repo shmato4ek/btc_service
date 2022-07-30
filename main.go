@@ -46,7 +46,10 @@ func subscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fdb := persistance.New(filepath, goDotEnvVariable("DATABASE_FILE_NAME"))
-	fdb.Save(model.Email(email), goDotEnvVariable("DATABASE_FILE_NAME"))
+	exists := fdb.Save(model.Email(email), goDotEnvVariable("DATABASE_FILE_NAME"))
+	if exists {
+		http.Error(w, "This email has already subscribed", http.StatusConflict)
+	}
 }
 
 func sendEmails(w http.ResponseWriter, r *http.Request) {

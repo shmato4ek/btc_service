@@ -56,11 +56,13 @@ func readFromFile(filepath string, fileName string) []model.Email {
 	return emails
 }
 
-func (fdb *FileDatabase) Save(email model.Email, fileName string) {
-	if !fdb.Exists(email) {
+func (fdb *FileDatabase) Save(email model.Email, fileName string) bool {
+	exists := fdb.Exists(email)
+	if !exists {
 		fdb.AddNewEmail(email, fileName)
 	}
 	fdb.Buffer = readFromFile(fdb.filePath, fileName)
+	return exists
 }
 
 func (fdb *FileDatabase) Exists(email model.Email) bool {
