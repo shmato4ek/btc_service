@@ -6,34 +6,31 @@ import (
 	"errors"
 	"log"
 	"os"
-	//"path/filepath"
 )
 
-type fileDatabase struct {
+type FileDatabase struct {
 	filePath string
-	buffer   []model.Email
+	Buffer   []model.Email
 }
 
-func New(filepath string) *fileDatabase {
-	_, err := os.Stat("database.txt")
+func New(filepath string, fileName string) *FileDatabase {
+	_, err := os.Stat(fileName)
 
 	if errors.Is(err, os.ErrNotExist) {
-		CreateFile()
+		createFile(fileName)
 	}
-	return &fileDatabase{
+	return &FileDatabase{
 		filePath: filepath,
-		buffer:   readFromFile(filepath),
+		Buffer:   readFromFile(filepath),
 	}
 }
 
-func CreateFile() {
-	file, err := os.Create("database.txt")
-
-	defer file.Close()
-
+func createFile(fileName string) {
+	file, err := os.Create(fileName)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer file.Close()
 }
 
 func readFromFile(filepath string) []model.Email {
@@ -59,16 +56,31 @@ func readFromFile(filepath string) []model.Email {
 	return emails
 }
 
-func (fdb *fileDatabase) Save() {
-
+func (fdb *FileDatabase) Save(email model.Email) {
+	if !fdb.Exists(email) {
+		fdb.AddNewEmail(email)
+	}
+	fdb.Buffer = readFromFile(fdb.filePath)
 }
 
-func (fdb *fileDatabase) Exists(email model.Email) bool {
+func (fdb *FileDatabase) Exists(email model.Email) bool {
 	exists := false
-	for _, element := range fdb.buffer {
+	for _, element := range fdb.Buffer {
 		if element == email {
 			exists = true
 		}
 	}
 	return exists
+}
+
+func (fdb *FileDatabase) AddNewEmail(email model.Email) {
+	f, err := os.OpenFile("database.txt",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+	}
+	defer f.Close()
+	if _, err := f.WriteString(string(email) + "\n"); err != nil {
+		log.Println(err)
+	}
 }
