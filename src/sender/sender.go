@@ -39,7 +39,7 @@ func New(from string, smtpName string, password string, text string, subject str
 	return &mailSender
 }
 
-func (mailSender *MailSender) send() {
+func (mailSender *MailSender) send() error {
 	m := gomail.NewMessage()
 
 	m.SetHeader("From", mailSender.From)
@@ -59,14 +59,14 @@ func (mailSender *MailSender) send() {
 
 	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
-	if err := d.DialAndSend(m); err != nil {
-		panic(err)
-	}
+	err := d.DialAndSend(m)
+	return err
 }
 
-func (mailSender *MailSender) SendRate(fdb *persistance.FileDatabase, apiName string) {
-	btc_rate := btc.GetRate(apiName)
+func (mailSender *MailSender) SendRate(fdb *persistance.FileDatabase, apiName string) (error, error) {
+	btc_rate, rateErr := btc.GetRate(apiName)
 	mailSender.To = fdb.Buffer
-	mailSender.Text += strconv.Itoa(btc_rate)
-	mailSender.send()
+	mailSender.Text += " " + strconv.Itoa(btc_rate)
+	sendErr := mailSender.send()
+	return sendErr, rateErr
 }

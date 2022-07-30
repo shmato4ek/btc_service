@@ -13,24 +13,26 @@ type FileDatabase struct {
 	Buffer   []model.Email
 }
 
-func New(filepath string, fileName string) *FileDatabase {
+func New(filepath string, fileName string) (*FileDatabase, error) {
 	_, err := os.Stat(fileName)
-
+	var createFileError error
 	if errors.Is(err, os.ErrNotExist) {
 		createFile(fileName)
 	}
 	return &FileDatabase{
 		filePath: filepath,
 		Buffer:   readFromFile(filepath, fileName),
-	}
+	}, createFileError
 }
 
-func createFile(fileName string) {
+func createFile(fileName string) error {
+	var createFileError error
 	file, err := os.Create(fileName)
 	if err != nil {
-		log.Fatal(err)
+		createFileError = err
 	}
 	defer file.Close()
+	return createFileError
 }
 
 func readFromFile(filepath string, fileName string) []model.Email {
@@ -79,10 +81,10 @@ func (fdb *FileDatabase) AddNewEmail(email model.Email, fileName string) {
 	f, err := os.OpenFile(fileName,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 	defer f.Close()
 	if _, err := f.WriteString(string(email) + "\n"); err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 }

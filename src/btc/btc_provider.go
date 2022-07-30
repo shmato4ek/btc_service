@@ -3,10 +3,8 @@ package btc
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"math"
 	"net/http"
-	"os"
 	"strconv"
 )
 
@@ -15,25 +13,14 @@ type BtcResponce struct {
 	Mins  int    `json:"mins"`
 }
 
-func GetRate(apiName string) int {
+func GetRate(apiName string) (int, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", apiName, nil)
-	if err != nil {
-		log.Print(err)
-		os.Exit(1)
-	}
+	req, _ := http.NewRequest("GET", apiName, nil)
 
 	resp, err := client.Do(req)
-	if err != nil {
-		log.Print(err)
-		os.Exit(1)
-	}
 	var responce BtcResponce
 	respBody, _ := ioutil.ReadAll(resp.Body)
 	json.Unmarshal([]byte(respBody), &responce)
-	btcRate, err := strconv.ParseFloat(responce.Price, 64)
-	if err != nil {
-		log.Print(err)
-	}
-	return int(math.Round(btcRate))
+	btcRate, _ := strconv.ParseFloat(responce.Price, 64)
+	return int(math.Round(btcRate)), err
 }

@@ -6,7 +6,6 @@ import (
 	"btc_service/src/persistance"
 	"btc_service/src/sender"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +13,30 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
+
+type config struct {
+	emailPassword    string
+	emailForSending  string
+	smtpName         string
+	mailText         string
+	mailSubject      string
+	databaseFileName string
+	btcApiName       string
+	filePath         string
+}
+
+func newConfig() config {
+	var newConfig config
+	newConfig.btcApiName = goDotEnvVariable("BTC_API_NAME")
+	newConfig.emailPassword = goDotEnvVariable("EMAIL_PASSWORD")
+	newConfig.databaseFileName = goDotEnvVariable("DATABASE_FILE_NAME")
+	newConfig.emailForSending = goDotEnvVariable("EMAIL_FOR_SENDING")
+	newConfig.smtpName = goDotEnvVariable("SMTP_NAME")
+	newConfig.mailText = goDotEnvVariable("MAIL_TEXT")
+	newConfig.mailSubject = goDotEnvVariable("MAIL_SUBJECT")
+	newConfig.filePath = goDotEnvVariable("FILEPATH")
+	return newConfig
+}
 
 func goDotEnvVariable(key string) string {
 
@@ -26,41 +49,57 @@ func goDotEnvVariable(key string) string {
 	return os.Getenv(key)
 }
 
-const (
-	filepath = "C:/Users/gangt/OneDrive/Documents/GitHub/btc_service"
-)
-
-func homeLink(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Welcome home!")
-}
+/*func homeLink(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Home page")
+}*/
 
 func getRate(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(btc.GetRate(goDotEnvVariable("BTC_API_NAME")))
+	config := newConfig()
+	rate, err := btc.GetRate(config.btcApiName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	json.NewEncoder(w).Encode(rate)
 }
 
 func subscribe(w http.ResponseWriter, r *http.Request) {
+	config := newConfig()
 	var email string
 	err := json.NewDecoder(r.Body).Decode(&email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fdb := persistance.New(filepath, goDotEnvVariable("DATABASE_FILE_NAME"))
-	exists := fdb.Save(model.Email(email), goDotEnvVariable("DATABASE_FILE_NAME"))
+	fdb, err := persistance.New(config.filePath, config.databaseFileName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	exists := fdb.Save(model.Email(email), config.databaseFileName)
 	if exists {
 		http.Error(w, "This email has already subscribed", http.StatusConflict)
 	}
 }
 
 func sendEmails(w http.ResponseWriter, r *http.Request) {
-	fdb := persistance.New(filepath, goDotEnvVariable("DATABASE_FILE_NAME"))
-	sender := sender.New(goDotEnvVariable("EMAIL_FOR_SENDING"), goDotEnvVariable("SMTP_NAME"), goDotEnvVariable("EMAIL_PASSWORD"), goDotEnvVariable("MAIL_TEXT"), goDotEnvVariable("MAIL_SUBJECT"))
-	sender.SendRate(fdb, goDotEnvVariable("BTC_API_NAME"))
+	config := newConfig()
+	fdb, err := persistance.New(config.filePath, config.databaseFileName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	sender := sender.New(config.emailForSending, config.smtpName, config.emailPassword, config.mailText, config.mailSubject)
+	sendErr, rateErr := sender.SendRate(fdb, config.btcApiName)
+	if sendErr != nil {
+		http.Error(w, sendErr.Error(), http.StatusBadRequest)
+	} else if rateErr != nil {
+		http.Error(w, rateErr.Error(), http.StatusBadRequest)
+	}
 }
 
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/", homeLink)
+	//router.HandleFunc("/", homeLink)
 	router.HandleFunc("/rate", getRate).Methods("GET")
 	router.HandleFunc("/subscribe", subscribe).Methods("POST")
 	router.HandleFunc("/sendEmails", sendEmails).Methods("POST")
