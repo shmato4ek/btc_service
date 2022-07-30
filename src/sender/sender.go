@@ -64,8 +64,8 @@ func (mailSender *MailSender) send() {
 	}
 }
 
-func (mailSender *MailSender) SendRate(fdb *persistance.FileDatabase) {
-	btc_rate := btc.GetRate()
+func (mailSender *MailSender) SendRate(fdb *persistance.FileDatabase, apiName string) {
+	btc_rate := btc.GetRate(apiName)
 	mailSender.To = fdb.Buffer
 	mailSender.Text += strconv.Itoa(btc_rate)
 	mailSender.send()

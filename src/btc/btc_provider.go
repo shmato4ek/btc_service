@@ -15,9 +15,9 @@ type BtcResponce struct {
 	Mins  int    `json:"mins"`
 }
 
-func GetRate() int {
+func GetRate(apiName string) int {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "https://api.binance.com/api/v3/avgPrice?symbol=BTCUAH", nil)
+	req, err := http.NewRequest("GET", apiName, nil)
 	if err != nil {
 		log.Print(err)
 		os.Exit(1)

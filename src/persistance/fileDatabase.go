@@ -21,7 +21,7 @@ func New(filepath string, fileName string) *FileDatabase {
 	}
 	return &FileDatabase{
 		filePath: filepath,
-		Buffer:   readFromFile(filepath),
+		Buffer:   readFromFile(filepath, fileName),
 	}
 }
 
@@ -33,9 +33,9 @@ func createFile(fileName string) {
 	defer file.Close()
 }
 
-func readFromFile(filepath string) []model.Email {
+func readFromFile(filepath string, fileName string) []model.Email {
 	var emails []model.Email
-	f, err := os.Open("database.txt")
+	f, err := os.Open(fileName)
 
 	if err != nil {
 		log.Fatal(err)
@@ -56,11 +56,11 @@ func readFromFile(filepath string) []model.Email {
 	return emails
 }
 
-func (fdb *FileDatabase) Save(email model.Email) {
+func (fdb *FileDatabase) Save(email model.Email, fileName string) {
 	if !fdb.Exists(email) {
-		fdb.AddNewEmail(email)
+		fdb.AddNewEmail(email, fileName)
 	}
-	fdb.Buffer = readFromFile(fdb.filePath)
+	fdb.Buffer = readFromFile(fdb.filePath, fileName)
 }
 
 func (fdb *FileDatabase) Exists(email model.Email) bool {
@@ -73,8 +73,8 @@ func (fdb *FileDatabase) Exists(email model.Email) bool {
 	return exists
 }
 
-func (fdb *FileDatabase) AddNewEmail(email model.Email) {
-	f, err := os.OpenFile("database.txt",
+func (fdb *FileDatabase) AddNewEmail(email model.Email, fileName string) {
+	f, err := os.OpenFile(fileName,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)

@@ -35,7 +35,7 @@ func homeLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func getRate(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(btc.GetRate())
+	json.NewEncoder(w).Encode(btc.GetRate(goDotEnvVariable("BTC_API_NAME")))
 }
 
 func subscribe(w http.ResponseWriter, r *http.Request) {
@@ -46,13 +46,13 @@ func subscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fdb := persistance.New(filepath, goDotEnvVariable("DATABASE_FILE_NAME"))
-	fdb.Save(model.Email(email))
+	fdb.Save(model.Email(email), goDotEnvVariable("DATABASE_FILE_NAME"))
 }
 
 func sendEmails(w http.ResponseWriter, r *http.Request) {
 	fdb := persistance.New(filepath, goDotEnvVariable("DATABASE_FILE_NAME"))
 	sender := sender.New(goDotEnvVariable("EMAIL_FOR_SENDING"), goDotEnvVariable("SMTP_NAME"), goDotEnvVariable("EMAIL_PASSWORD"), goDotEnvVariable("MAIL_TEXT"), goDotEnvVariable("MAIL_SUBJECT"))
-	sender.SendRate(fdb)
+	sender.SendRate(fdb, goDotEnvVariable("BTC_API_NAME"))
 }
 
 func main() {
